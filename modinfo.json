@@ -1,9 +1,9 @@
 {
   "id": "Gamer025.InstantReplay",
   "name": "Instant Replay",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "target_game_version": "v1.9.07b",
   "authors": "Gamer025",
   "description": "Ever died in a spectacular way and wanted to check what happened?\nOr maybe did some sick movement tech and wanted to study what happened frame per frame?\nInstant Replay allows for all of that. With the press of a button you can go back up to 20 seconds at 40 FPS (check the config menu) and rewatch the moment as often as you want or even study it frame per frame.\n Currently there is also the option to an individual frame as a PNG, and hopefully in the future GIF support will come too!",
-  "checksum_override_version": false
+  "checksum_override_version": true
 }

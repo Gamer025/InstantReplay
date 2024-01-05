@@ -7,10 +7,10 @@ namespace InstantReplay
 
     internal class FrameCompressor : IDisposable
     {
-        private RLE compressor;
+        private readonly RLE compressor;
         public ManualResetEvent MRE { get; set; }
-        public GameCapture capture { get; set; }
-        private Thread Worker;
+        public GameCapture Capture { get; set; }
+        private readonly Thread Worker;
         private bool shutdown = false;
         public byte[] frameToCompress;
         Guid GUID = Guid.NewGuid();
@@ -18,7 +18,7 @@ namespace InstantReplay
         public FrameCompressor(int frames, int x, int y, int FPS)
         {
             MRE = new ManualResetEvent(false);
-            capture = new GameCapture(frames, x, y, FPS);
+            Capture = new GameCapture(frames, x, y, FPS);
             compressor = new RLE();
             Worker = new Thread(DoWork);
             Worker.Start();
@@ -38,12 +38,12 @@ namespace InstantReplay
                         return;
                     }
                     MRE.WaitOne();
-                    capture.AddFrame(new CompressedFrame(compressor.CompressRGB(frameToCompress), frameToCompress.Length));
+                    Capture.AddFrame(new CompressedFrame(compressor.CompressRGB(frameToCompress), frameToCompress.Length));
                     MRE.Reset();
                 }
                 catch (Exception ex)
                 {
-                    ME.Logger_p.LogError($"Compressor thread crashed. {ex.Message} \n {ex.StackTrace}");
+                    ME.Logger_p.LogError($"Compressor thread {GUID} crashed. {ex.Message} \n {ex.StackTrace}");
                 }
             }
         }

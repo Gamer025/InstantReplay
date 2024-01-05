@@ -1,9 +1,4 @@
 ﻿//TODO:
-//Memory manager
-//Reduce frames
-//Increase compression
-//Decrease runtime
-//Stop
 //Gif export (Figure out memory mapped files and send data to a 64bit process)
 using BepInEx;
 using System.Security.Permissions;
@@ -18,13 +13,15 @@ using Unity.Profiling;
 
 namespace InstantReplay;
 
-[BepInPlugin(MOD_ID, "InstantReplay", "0.1.0")]
+[BepInPlugin(MOD_ID, "InstantReplay", "1.0.0")]
 public class InstantReplay : BaseUnityPlugin
 {
     public const string MOD_ID = "Gamer025.InstantReplay";
 
     //Config
+#pragma warning disable CA2211
     public static Configurable<int> FPS;
+ // Non-constant fields should not be visible
     public static Configurable<int> maxSecs;
     public static Configurable<bool> downscaleReplay;
     public static Configurable<bool> muteGame;
@@ -38,7 +35,7 @@ public class InstantReplay : BaseUnityPlugin
     public static Configurable<KeyCode> rewindKey;
     public static Configurable<KeyCode> fullscreenKey;
     public static Configurable<KeyCode> exportPNGKey;
-
+#pragma warning restore CA2211
     //Time between frames (to capture)
     float TBF = 0;
     bool pauseCapture = false;
@@ -56,14 +53,11 @@ public class InstantReplay : BaseUnityPlugin
     private static WeakReference __me;
     public static InstantReplay ME => __me?.Target as InstantReplay;
     public ManualLogSource Logger_p => Logger;
-    public static Version modVersion;
-    private UnityEngine.AssetBundle IRAssetBundle;
+    public readonly static Version modVersion = ((BepInPlugin)Attribute.GetCustomAttribute(typeof(InstantReplay), typeof(BepInPlugin))).Version;
+    private AssetBundle IRAssetBundle;
     public InstantReplay()
     {
         __me = new(this);
-        BepInPlugin attribute =
-            (BepInPlugin)Attribute.GetCustomAttribute(typeof(InstantReplay), typeof(BepInPlugin));
-        modVersion = attribute.Version;
     }
 
     public void OnEnable()
@@ -112,9 +106,9 @@ public class InstantReplay : BaseUnityPlugin
                     Destroy(this);
                 }
                 ME.Logger_p.Log(LogLevel.Debug, $"Assetbundle content: {String.Join(", ", IRAssetBundle.GetAllAssetNames())}");
-                self.Shaders.Add("InstantReplay", FShader.CreateShader("InstantReplay", IRAssetBundle.LoadAsset<UnityEngine.Shader>("instantreplay.shader")));
-                Futile.atlasManager.LoadAtlasFromTexture("InstantReplayPlay", IRAssetBundle.LoadAsset<UnityEngine.Texture2D>("play.png"), false);
-                Futile.atlasManager.LoadAtlasFromTexture("InstantReplayPause", IRAssetBundle.LoadAsset<UnityEngine.Texture2D>("pause.png"), false);
+                self.Shaders.Add("InstantReplay", FShader.CreateShader("InstantReplay", IRAssetBundle.LoadAsset<Shader>("instantreplay.shader")));
+                Futile.atlasManager.LoadAtlasFromTexture("InstantReplayPlay", IRAssetBundle.LoadAsset<Texture2D>("play.png"), false);
+                Futile.atlasManager.LoadAtlasFromTexture("InstantReplayPause", IRAssetBundle.LoadAsset<Texture2D>("pause.png"), false);
             }
             catch (Exception e)
             {
@@ -226,7 +220,7 @@ public class InstantReplay : BaseUnityPlugin
             //The replayer is always active expect when it isn't
             if (ReplayState != ReplayOverlayState.Shutdown)
             {
-                screenOverlay.ReplayUpdate(dt, compressorWorker.capture, ref ReplayState, self.rainWorld);
+                screenOverlay.ReplayUpdate(dt, compressorWorker.Capture, ref ReplayState, self.rainWorld);
                 //Replayer got one tick to shut its stuff down and we can transition into the shutdown state
                 if (ReplayState == ReplayOverlayState.Exiting)
                 {
@@ -304,7 +298,7 @@ public class InstantReplay : BaseUnityPlugin
         //High watermark, fail fast
         if (usedRAM > 2700000000)
         {
-            Logger_p.LogError($"Rain World memory usage above 2.7GB, is at {usedRAM} bytes, exiting!\n Compressed frames size: {compressorWorker.capture.FrameBytes} bytes.");
+            Logger_p.LogError($"Rain World memory usage above 2.7GB, is at {usedRAM} bytes, exiting!\n Compressed frames size: {compressorWorker.Capture.FrameBytes} bytes.");
             statusHUD?.SetStatus("Rain Worlds free memory is critically low!\nInstant Replay is now exiting and will be disabled for the remaining cycle/round.", Color.red);
             pauseCapture = true;
             shutdown = true;
@@ -312,7 +306,7 @@ public class InstantReplay : BaseUnityPlugin
             {
                 ReplayState = ReplayOverlayState.Exiting;
                 //Make sure the overlay cleans ups
-                screenOverlay.ReplayUpdate(0f, compressorWorker.capture, ref ReplayState, game.rainWorld);
+                screenOverlay.ReplayUpdate(0f, compressorWorker.Capture, ref ReplayState, game.rainWorld);
                 ReplayState = ReplayOverlayState.Shutdown;
                 //Restore
                 game.paused = false;

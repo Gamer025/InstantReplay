@@ -22,8 +22,8 @@ namespace InstantReplay.Overlays
         //private int currentTextureArray = 0;
 
         private Texture2D currentFrame;
-        private FContainer container = new FContainer();
-        private FSprite[] sprites = new FSprite[3];
+        private readonly FContainer container = new();
+        private readonly FSprite[] sprites = new FSprite[3];
 
         public ScreenOverlay(RainWorld rainWorld)
         {
@@ -345,9 +345,5 @@ namespace InstantReplay.Overlays
         //}
 
         //This empty method needs to exist otherwise CosmeticSprites base implementation is going to delete us because we are not in the room
-        public void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
-        {
-        }
-
     }
 }
