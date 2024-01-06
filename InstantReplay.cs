@@ -8,12 +8,15 @@ using BepInEx.Logging;
 using InstantReplay.Overlays;
 using System;
 using Unity.Profiling;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 
 namespace InstantReplay;
 
-[BepInPlugin(MOD_ID, "InstantReplay", "1.0.0")]
+[BepInPlugin(MOD_ID, "InstantReplay", "1.0.1")]
 public class InstantReplay : BaseUnityPlugin
 {
     public const string MOD_ID = "Gamer025.InstantReplay";
@@ -45,6 +48,13 @@ public class InstantReplay : BaseUnityPlugin
     internal ReplayOverlayState ReplayState = ReplayOverlayState.Shutdown;
     private StatusHUD statusHUD;
 
+    public static bool splitScreenModEnabled = false;
+    public static object splitScreenMB;
+    public static Type splitScreenenumType;
+    public static FieldInfo splitScreenEnum;
+    public static int splitScreenNoSplit;
+    public static MethodInfo splitScreenUpdateMethod;
+
     private FrameCompressor compressorWorker;
     private ProfilerRecorder systemMemoryRecorder;
     //private ProfilerRecorder gcMemoryRecorder;
@@ -63,6 +73,7 @@ public class InstantReplay : BaseUnityPlugin
     public void OnEnable()
     {
         On.RainWorld.OnModsInit += OnModsInitHook;
+        On.RainWorld.PostModsInit += RainWorld_PostModsInit;
         systemMemoryRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "System Used Memory");
         //gcMemoryRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "GC Used Memory");
         //gcMemoryRecorder2 = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "GC Reserved Memory");
@@ -119,6 +130,43 @@ public class InstantReplay : BaseUnityPlugin
         }
     }
 
+    private void RainWorld_PostModsInit(On.RainWorld.orig_PostModsInit orig, RainWorld self)
+    {
+        if (self.options.enabledMods.Contains("henpemaz_splitscreencoop"))
+        {
+            MonoBehaviour[] allMono = FindObjectsOfType<MonoBehaviour>();
+            foreach (MonoBehaviour mono in allMono)
+            {
+                if (mono.GetType().Name == "SplitScreenCoop")
+                {
+                    try
+                    {
+                        Logger_p.LogInfo("Detected SplitScreen mod.");
+                        //We only set the bool to true if we also find the MB
+                        splitScreenModEnabled = true;
+                        splitScreenMB = mono;
+                        Logger_p.LogInfo($"splitScreenMB: {splitScreenMB}");
+                        splitScreenenumType = mono.GetType().GetField("preferedSplitMode").FieldType;
+                        Logger_p.LogInfo($"splitScreenenumType: {splitScreenenumType}");
+                        splitScreenEnum = mono.GetType().GetField("preferedSplitMode");
+                        Logger_p.LogInfo($"splitScreenEnum: {splitScreenEnum}");
+                        FieldInfo NoSplitEnumEntry = splitScreenenumType.GetField("NoSplit");
+                        Logger_p.LogInfo($"NoSplitEnumEntry: {NoSplitEnumEntry}");
+                        splitScreenNoSplit = (int)NoSplitEnumEntry.GetValue(splitScreenenumType);
+                        Logger_p.LogInfo($"splitScreenNoSplit: {splitScreenNoSplit}");
+                        splitScreenUpdateMethod = mono.GetType().GetMethod("SetSplitMode");
+                        Logger_p.LogInfo($"splitScreenNoSplit: {splitScreenUpdateMethod}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger_p.LogError(ex.Message);
+                        Logger_p.LogError(ex.StackTrace);
+                    }
+                }
+            }
+        }
+    }
+
     private void RainWorldGame_ctor(On.RainWorldGame.orig_ctor orig, RainWorldGame self, ProcessManager manager)
     {
         orig(self, manager);
@@ -142,6 +190,7 @@ public class InstantReplay : BaseUnityPlugin
     float memoryTimestacker = 0;
     float gameOverCount = 0;
     int errorCount = 0;
+    int splitScreenOldValue;
     private void RainWorldGame_RawUpdate(On.RainWorldGame.orig_RawUpdate orig, RainWorldGame self, float dt)
     {
         try
@@ -196,6 +245,15 @@ public class InstantReplay : BaseUnityPlugin
                     self.paused = true;
                     if (muteGame.Value)
                         AudioListener.pause = true;
+
+                    //Splitscreen is enabled, we need to disable it while the player is active
+                    if (InstantReplay.splitScreenModEnabled)
+                    {
+                        splitScreenOldValue = (int)splitScreenEnum.GetValue(splitScreenMB);
+                        object newEnumValue = Enum.ToObject(splitScreenenumType, splitScreenNoSplit);
+                        splitScreenEnum.SetValue(null, newEnumValue);
+                        splitScreenUpdateMethod.Invoke(splitScreenMB, new object[2] { splitScreenEnum.GetValue(null), self });
+                    }
                 }
                 //If it runs get it into the Exiting state
                 if (ReplayState == ReplayOverlayState.Running)
@@ -229,18 +287,27 @@ public class InstantReplay : BaseUnityPlugin
                     self.paused = false;
                     if (muteGame.Value)
                         AudioListener.pause = false;
+
+                    //Make sure we put everything back like we left it
+                    if (InstantReplay.splitScreenModEnabled)
+                    {
+                        object newEnumValue = Enum.ToObject(splitScreenenumType, splitScreenOldValue);
+                        splitScreenEnum.SetValue(null, newEnumValue);
+                        splitScreenUpdateMethod.Invoke(splitScreenMB, new object[2] { splitScreenEnum.GetValue(null), self });
+                    }
                 }
             }
 
         }
         catch (Exception ex)
         {
-
             errorCount++;
             Logger_p.LogError($"Error {errorCount} in RawUpdate Hook: {ex.Message}\n{ex.StackTrace}");
             if (errorCount > 10)
             {
                 On.RainWorldGame.RawUpdate -= RainWorldGame_RawUpdate;
+                self.paused = false;
+                AudioListener.pause = false;
             }
         }
         orig(self, dt);
