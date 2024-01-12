@@ -13,7 +13,7 @@ namespace InstantReplay.Overlays
         Shutdown
     }
 
-    public class ScreenOverlay
+    public class ScreenOverlay : IDisposable
     {
         //Can't just have a Texture2DArray for every room camera, neither would it make sense so this is static
         //Also two arrays one used live during playback while the other gets ready in the background
@@ -214,6 +214,11 @@ namespace InstantReplay.Overlays
                 sprites[0].x = sprites[1].x;
                 sprites[0].y = sprites[1].y;
             }
+        }
+
+        public void Dispose()
+        {
+            Futile.stage.RemoveChild(container);
         }
 
 

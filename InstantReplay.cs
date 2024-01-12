@@ -16,7 +16,7 @@ using System.Reflection;
 
 namespace InstantReplay;
 
-[BepInPlugin(MOD_ID, "InstantReplay", "1.0.1")]
+[BepInPlugin(MOD_ID, "InstantReplay", "1.0.2")]
 public class InstantReplay : BaseUnityPlugin
 {
     public const string MOD_ID = "Gamer025.InstantReplay";
@@ -107,6 +107,8 @@ public class InstantReplay : BaseUnityPlugin
             On.HUD.TextPrompt.UpdateGameOverString += TextPrompt_UpdateGameOverStringHook;
             //Add own HUD to the game
             On.HUD.HUD.InitSinglePlayerHud += HUDInitSinglePlayerHudHook;
+            //Failsafe for if scene gets switched while player is active
+            On.ProcessManager.PostSwitchMainProcess += ProcessManager_PostSwitchMainProcessHook;
 
             try
             {
@@ -176,6 +178,18 @@ public class InstantReplay : BaseUnityPlugin
         compressorWorker?.Dispose();
         compressorWorker = new FrameCompressor(FPS.Value * maxSecs.Value, (int)self.rainWorld.options.ScreenSize.x, (int)self.rainWorld.options.ScreenSize.y, FPS.Value);
         screenOverlay = new ScreenOverlay(self.rainWorld);
+    }
+
+    private void ProcessManager_PostSwitchMainProcessHook(On.ProcessManager.orig_PostSwitchMainProcess orig, ProcessManager self, ProcessManager.ProcessID ID)
+    {
+        ReplayState = ReplayOverlayState.Shutdown;
+        if (screenOverlay != null)
+        {
+            screenOverlay.Dispose();
+            screenOverlay = null;
+        }
+        AudioListener.pause = false;
+        orig(self, ID);
     }
 
     void HUDInitSinglePlayerHudHook(On.HUD.HUD.orig_InitSinglePlayerHud orig, HUD.HUD self, RoomCamera cam)
