@@ -16,7 +16,7 @@ using System.Reflection;
 
 namespace InstantReplay;
 
-[BepInPlugin(MOD_ID, "InstantReplay", "1.0.2")]
+[BepInPlugin(MOD_ID, "InstantReplay", "1.0.3")]
 public class InstantReplay : BaseUnityPlugin
 {
     public const string MOD_ID = "Gamer025.InstantReplay";
@@ -134,6 +134,7 @@ public class InstantReplay : BaseUnityPlugin
 
     private void RainWorld_PostModsInit(On.RainWorld.orig_PostModsInit orig, RainWorld self)
     {
+        orig(self);
         if (self.options.enabledMods.Contains("henpemaz_splitscreencoop"))
         {
             MonoBehaviour[] allMono = FindObjectsOfType<MonoBehaviour>();
