@@ -7,7 +7,7 @@
 	<LangVersion>latest</LangVersion>
 	<EnableNETAnalyzers>True</EnableNETAnalyzers>
 	<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
-	  <Version>1.0.3</Version>
+	  <Version>1.1.0</Version>
 	  <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
@@ -15,47 +15,46 @@
     <DebugType>portable</DebugType>
   </PropertyGroup>
 
-	<PropertyGroup>
-		<DefaultItemExcludes>$(DefaultItemExcludes);GifMaker\**</DefaultItemExcludes>
-	</PropertyGroup>
-	
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DebugType>portable</DebugType>
   </PropertyGroup>
 
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\Assembly-CSharp.dll</HintPath>
+      <HintPath>..\..\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="BepInEx">
-      <HintPath>..\BepInEx.dll</HintPath>
+      <HintPath>..\..\BepInEx.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="HOOKS-Assembly-CSharp">
-      <HintPath>..\HOOKS-Assembly-CSharp.dll</HintPath>
+      <HintPath>..\..\HOOKS-Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine">
-      <HintPath>..\..\..\..\Spiele\Steam\steamapps\common\Rain World\RainWorld_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>..\..\UnityEngine.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.AssetBundleModule">
-      <HintPath>..\UnityEngine.AssetBundleModule.dll</HintPath>
+      <HintPath>..\..\UnityEngine.AssetBundleModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.AudioModule">
-      <HintPath>..\UnityEngine.AudioModule.dll</HintPath>
+      <HintPath>..\..\UnityEngine.AudioModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>..\..\..\..\Spiele\Steam\steamapps\common\Rain World\RainWorld_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>..\..\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.ImageConversionModule">
-      <HintPath>..\UnityEngine.ImageConversionModule.dll</HintPath>
+      <HintPath>..\..\UnityEngine.ImageConversionModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
-      <HintPath>..\UnityEngine.InputLegacyModule.dll</HintPath>
+      <HintPath>..\..\UnityEngine.InputLegacyModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.ScreenCaptureModule">
-      <HintPath>..\UnityEngine.ScreenCaptureModule.dll</HintPath>
+      <HintPath>..\..\UnityEngine.ScreenCaptureModule.dll</HintPath>
     </Reference>
   </ItemGroup>
 
@@ -66,7 +65,7 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy /Y &quot;$(TargetPath)&quot; &quot;..\Rain World Modded\RainWorld_Data\StreamingAssets\mods\InstantReplay\&quot;" />
+    <Exec Command="copy /Y &quot;$(TargetPath)&quot; &quot;..\..\Rain World Modded\RainWorld_Data\StreamingAssets\mods\InstantReplay\&quot;" />
   </Target>
 
 </Project>

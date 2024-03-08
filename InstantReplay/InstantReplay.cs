@@ -1,6 +1,4 @@
-﻿//TODO:
-//Gif export (Figure out memory mapped files and send data to a 64bit process)
-using BepInEx;
+﻿using BepInEx;
 using System.Security.Permissions;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -8,15 +6,16 @@ using BepInEx.Logging;
 using InstantReplay.Overlays;
 using System;
 using Unity.Profiling;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
+using System.IO;
+using System.Diagnostics;
+using System.Collections.Generic;
 
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 
 namespace InstantReplay;
 
-[BepInPlugin(MOD_ID, "InstantReplay", "1.0.3")]
+[BepInPlugin(MOD_ID, "InstantReplay", "1.1.0")]
 public class InstantReplay : BaseUnityPlugin
 {
     public const string MOD_ID = "Gamer025.InstantReplay";
@@ -24,13 +23,12 @@ public class InstantReplay : BaseUnityPlugin
     //Config
 #pragma warning disable CA2211
     public static Configurable<int> FPS;
- // Non-constant fields should not be visible
+    // Non-constant fields should not be visible
     public static Configurable<int> maxSecs;
     public static Configurable<bool> downscaleReplay;
     public static Configurable<bool> muteGame;
     public static Configurable<bool> autoPauseGameover;
     public static Configurable<DefaultReplayMode> replayMode;
-    public static Configurable<string> imageSavePath;
     //Keybind Configs
     public static Configurable<KeyCode> enableKey;
     public static Configurable<KeyCode> pauseKey;
@@ -38,6 +36,12 @@ public class InstantReplay : BaseUnityPlugin
     public static Configurable<KeyCode> rewindKey;
     public static Configurable<KeyCode> fullscreenKey;
     public static Configurable<KeyCode> exportPNGKey;
+    public static Configurable<KeyCode> exportGifKey;
+    //Export Configs
+    public static Configurable<string> imageSavePath;
+    public static Configurable<int> gifMaxLength;
+    public static Configurable<float> gifScale;
+
 #pragma warning restore CA2211
     //Time between frames (to capture)
     float TBF = 0;
@@ -45,9 +49,10 @@ public class InstantReplay : BaseUnityPlugin
     //We are shutdown because memory was low
     bool shutdown = true;
     private ScreenOverlay screenOverlay;
-    internal ReplayOverlayState ReplayState = ReplayOverlayState.Shutdown;
+    public ReplayOverlayState ReplayState = ReplayOverlayState.Shutdown;
     private StatusHUD statusHUD;
 
+    //Split-Screen Mod integration
     public static bool splitScreenModEnabled = false;
     public static object splitScreenMB;
     public static Type splitScreenenumType;
@@ -57,8 +62,8 @@ public class InstantReplay : BaseUnityPlugin
 
     private FrameCompressor compressorWorker;
     private ProfilerRecorder systemMemoryRecorder;
-    //private ProfilerRecorder gcMemoryRecorder;
-    //private ProfilerRecorder gcMemoryRecorder2;
+
+    private List<Process> gifMakers = new List<Process>();
 
     private static WeakReference __me;
     public static InstantReplay ME => __me?.Target as InstantReplay;
@@ -201,8 +206,9 @@ public class InstantReplay : BaseUnityPlugin
     }
 
     bool toggleDown = false;
+    bool gifDown = false;
     float captureTimestacker = 0;
-    float memoryTimestacker = 0;
+    float secondsTimestacker = 0;
     float gameOverCount = 0;
     int errorCount = 0;
     int splitScreenOldValue;
@@ -217,12 +223,36 @@ public class InstantReplay : BaseUnityPlugin
             }
 
             captureTimestacker += dt;
-            memoryTimestacker += dt;
+            secondsTimestacker += dt;
 
-            if (memoryTimestacker > 1f)
+            if (secondsTimestacker > 1f)
             {
-                memoryTimestacker = 0;
+                secondsTimestacker = 0;
                 MemoryWatcher(self);
+                for (int i = 0; i < gifMakers.Count; i++)
+                {
+                    if (gifMakers[i].HasExited)
+                    {
+                        if (gifMakers[i].ExitCode != 0)
+                        {
+                            statusHUD.AddStatusMessage($"Gif creation failed! Err:{gifMakers[i].ExitCode}", 30);
+                            Logger_p.LogError($"GifMaker.exe failed with exit code: {gifMakers[i].ExitCode}");
+                            string gifMakerGifPath = gifMakers[i].StartInfo.Arguments;
+                            Logger_p.LogDebug($"gifMakerGifPath: {gifMakerGifPath}, data: {gifMakerGifPath + ".data"}, exists? {File.Exists(gifMakerGifPath + ".data")}");
+                            if (File.Exists(gifMakerGifPath + ".data"))
+                                File.Delete(gifMakerGifPath + ".data");
+                            if (File.Exists(gifMakerGifPath + ".meta"))
+                                File.Delete(gifMakerGifPath + ".meta");
+                            gifMakers[i] = null;
+                        }
+                        else
+                        {
+                            statusHUD.AddStatusMessage("Gif creation finished!", 20);
+                            gifMakers[i] = null;
+                        }
+                    }
+                }
+                gifMakers.RemoveAll(item => item == null);
             }
 
             if (captureTimestacker > TBF)
@@ -289,6 +319,31 @@ public class InstantReplay : BaseUnityPlugin
                 //Prevent the game from going to the death screen if the player exited the interface via the escape key
                 self.cameras[0].hud.textPrompt.restartNotAllowed += 10;
             }
+
+            bool GifExportKey = Input.GetKey(exportGifKey.Value);
+            if (GifExportKey && !gifDown)
+            {
+                if (gifMakers.Count > 2)
+                {
+                    ME.Logger_p.LogInfo($"Already creating more than 2 gifs, cancelling.");
+                }
+                else
+                {
+                    string filename = $"{string.Format("{0:yyyy-MM-dd_HH-mm-ss-fff}", DateTime.Now)}.gif";
+                    string path = Path.Combine(InstantReplay.imageSavePath.Value, filename);
+                    ME.Logger_p.LogInfo($"Export Gif data to: {path}");
+                    statusHUD.AddStatusMessage($"Creating new Gif {filename}...", 30);
+                    try
+                    {
+                        gifMakers.Add(compressorWorker.Capture.ExportGifData(path));
+                    }
+                    catch (Exception ex)
+                    {
+                        ME.Logger_p.LogError($"Error exporting: {ex.Message}\n{ex.StackTrace}");
+                    }
+                }
+            }
+            gifDown = GifExportKey;
 
             //The replayer is always active expect when it isn't
             if (ReplayState != ReplayOverlayState.Shutdown)
@@ -381,7 +436,7 @@ public class InstantReplay : BaseUnityPlugin
         if (usedRAM > 2700000000)
         {
             Logger_p.LogError($"Rain World memory usage above 2.7GB, is at {usedRAM} bytes, exiting!\n Compressed frames size: {compressorWorker.Capture.FrameBytes} bytes.");
-            statusHUD?.SetStatus("Rain Worlds free memory is critically low!\nInstant Replay is now exiting and will be disabled for the remaining cycle/round.", Color.red);
+            statusHUD?.SetError("Rain Worlds free memory is critically low!\nInstant Replay is now exiting and will be disabled for the remaining cycle/round.");
             pauseCapture = true;
             shutdown = true;
             if (ReplayState != ReplayOverlayState.Shutdown)

@@ -1,0 +1,9 @@
+{
+  "id": "Gamer025.InstantReplay",
+  "name": "Instant Replay",
+  "version": "1.1.0",
+  "target_game_version": "v1.9.07b",
+  "authors": "Gamer025",
+  "description": "Ever died in a spectacular way and wanted to check what happened?\nOr maybe did some sick movement tech and wanted to study what happened frame per frame?\nInstant Replay allows for all of that. With the press of a button you can go back up to 20 seconds at 40 FPS (check the config menu) and rewatch the moment as often as you want or even study it frame per frame.\n The mod also allows you to easily export your whole replay as an animated GIF at any time or individual frames as PNGs!",
+  "checksum_override_version": true
+}

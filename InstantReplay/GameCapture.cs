@@ -1,5 +1,9 @@
 ﻿using System;
 using UnityEngine;
+using Newtonsoft.Json;
+using System.IO;
+using System.Diagnostics;
+using System.Reflection;
 
 namespace InstantReplay
 {
@@ -29,7 +33,7 @@ namespace InstantReplay
             get
             {
                 long count = 0;
-                for (int i = 0; i < compressedFrames.Length; i++) 
+                for (int i = 0; i < compressedFrames.Length; i++)
                 {
                     if (compressedFrames[i].compressedData != null)
                     {
@@ -96,6 +100,75 @@ namespace InstantReplay
         public void RewindToStart()
         {
             readIndex = ((writeIndex + 1) % capturedFrames + capturedFrames) % capturedFrames;
+        }
+
+        public Process ExportGifData(string path)
+        {
+            int prevRead = readIndex;
+            RewindToStart();
+            bool halfFrames = FPS >= 30;
+            int framesToWrite = Math.Min(InstantReplay.gifMaxLength.Value * FPS, capturedFrames);
+
+            //If replay viewer is active use current viewed frame as start and output till end of replay
+            if (InstantReplay.ME.ReplayState == Overlays.ReplayOverlayState.Running)
+            {
+                readIndex = prevRead;
+                if (readIndex > writeIndex)
+                    framesToWrite = compressedFrames.Length - readIndex + writeIndex;
+                else if (readIndex != writeIndex)
+                    framesToWrite = writeIndex - readIndex;
+                else
+                    framesToWrite = capturedFrames;
+            }
+            else //Otherwise rewind back X seconds
+            {
+                MoveRead(-framesToWrite);
+            }
+            
+            GifMetadata meta = new GifMetadata()
+            {
+                Width = frameSize.x,
+                Height = frameSize.y,
+                FPS = halfFrames ? FPS / 2 : FPS,
+                Frames = new GifMetadata.FrameData[halfFrames ? (int)Math.Ceiling(framesToWrite / 2f) : framesToWrite],
+                Scale = InstantReplay.gifScale.Value
+            };
+
+            using (var fs = new FileStream(path + ".data", FileMode.Create, FileAccess.Write))
+            {
+
+                int imageCount = 0;
+
+
+                for (int i = 0; i < framesToWrite; i++)
+                {
+                    if (halfFrames && i % 2 != 0)
+                        continue;
+                    int index = ((readIndex + i) % capturedFrames + capturedFrames) % capturedFrames;
+                    meta.Frames[imageCount] = new GifMetadata.FrameData()
+                    {
+                        FrameCompressedSize = compressedFrames[index].compressedData.Length,
+                        FrameOrigSize = compressedFrames[index].origSize
+                    };
+                    fs.Write(compressedFrames[index].compressedData, 0, compressedFrames[index].compressedData.Length);
+                    imageCount++;
+                }
+            }
+            File.WriteAllText(path + ".meta", JsonConvert.SerializeObject(meta));
+            readIndex = prevRead;
+
+            string GifMakerPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), ".." + Path.DirectorySeparatorChar + "GifMaker" + Path.DirectorySeparatorChar + "GifMakerCore.exe");
+            ProcessStartInfo psi = new ProcessStartInfo();
+            psi.EnvironmentVariables.Clear();
+            psi.UseShellExecute = false;
+            psi.FileName = GifMakerPath;
+            psi.Arguments = $"\"{path}\"";
+            psi.WindowStyle = ProcessWindowStyle.Hidden;
+            psi.CreateNoWindow = true;
+            InstantReplay.ME.Logger_p.LogInfo($"Staring GifMaker at {GifMakerPath} with args: {psi.Arguments}");
+            Process proc = Process.Start(psi);
+            proc.PriorityClass = ProcessPriorityClass.BelowNormal;
+            return proc;
         }
     }
     public struct CompressedFrame

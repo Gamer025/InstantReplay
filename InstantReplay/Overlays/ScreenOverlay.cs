@@ -5,7 +5,7 @@ using static InstantReplay.InstantReplay;
 
 namespace InstantReplay.Overlays
 {
-    enum ReplayOverlayState
+    public enum ReplayOverlayState
     {
         Starting,
         Running,

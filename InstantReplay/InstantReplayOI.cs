@@ -13,7 +13,6 @@ namespace InstantReplay
             InstantReplay.maxSecs = config.Bind("maxSecs", 10, new ConfigAcceptableRange<int>(5, 20));
             InstantReplay.replayMode = config.Bind("replayMode", DefaultReplayMode.Popup);
             InstantReplay.downscaleReplay = config.Bind("downscaleReplay", false, new ConfigurableInfo("Faster but more pixelated ingame replay\nEnable if you have performance problems when watching replays", null, "Downscale ingame replay"));
-            InstantReplay.imageSavePath = config.Bind("imageSavePath", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "Rain World"), new ConfigurableInfo("Save location for images/gifs", null, "Folder to store images in"));
             InstantReplay.muteGame = config.Bind("muteGame", true, new ConfigurableInfo("Mute game when replay active", null, "Mute game on replay"));
             InstantReplay.autoPauseGameover = config.Bind("autoPauseGameover", true, new ConfigurableInfo("Pause capture on Gameover", null, "Pause capture on Gameover"));
             //Keybinds
@@ -23,7 +22,12 @@ namespace InstantReplay
             InstantReplay.rewindKey = config.Bind("backwardsKey", KeyCode.LeftArrow);
             InstantReplay.fullscreenKey = config.Bind("fullscreenKey", KeyCode.F);
             InstantReplay.exportPNGKey = config.Bind("exportPNGKey", KeyCode.E);
-
+            InstantReplay.exportGifKey = config.Bind("exportGifKey", KeyCode.G);
+            //Export
+            InstantReplay.imageSavePath = config.Bind("imageSavePath", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "Rain World"), new ConfigurableInfo("Save location for images/gifs", null, "Folder to store images in"));
+            InstantReplay.gifMaxLength = config.Bind("gifMaxLength", 10, new ConfigAcceptableRange<int>(5, 20));
+            InstantReplay.gifScale = config.Bind("gifSale", 0.8f, new ConfigAcceptableRange<float>(0.5f, 1f));
+            
             try
             {
                 if (InstantReplay.imageSavePath.Value == Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "Rain World"))
@@ -43,9 +47,10 @@ namespace InstantReplay
         {
             base.Initialize();
 
-            Tabs = new OpTab[2]; // Each OpTab is 600 x 600 pixel sized canvas
+            Tabs = new OpTab[3]; // Each OpTab is 600 x 600 pixel sized canvas
             Tabs[0] = new OpTab(this, "Main");
             Tabs[1] = new OpTab(this, "Keybinds");
+            Tabs[2] = new OpTab(this, "Export");
 
             //Heading
             Tabs[0].AddItems(new OpLabel(220f, 580f, "Instant Replay Config", bigText: true)
@@ -68,33 +73,19 @@ namespace InstantReplay
             Tabs[0].AddItems(new OpLabel(new Vector2(10f, 420f), new Vector2(100f, 20f), "Default player mode:", alignment: FLabelAlignment.Right)
             { description = "Fullscreen or popup player for ingame replay player" });
 
-            //Image save path
-            pathErrorLb = new OpLabel(260f, 310f, "");
-            Tabs[0].AddItems(pathErrorLb);
-            imagePathTb = new OpTextBox(InstantReplay.imageSavePath, new Vector2(120f, 338f), 300f);
-            Tabs[0].AddItems(imagePathTb);
-            Tabs[0].AddItems(new OpLabel(new Vector2(10f, 340f), new Vector2(100f, 20f), "Image save location:", alignment: FLabelAlignment.Right)
-            { description = "Folder in which to store images/gifs." });
-            OpSimpleButton openButton = new OpSimpleButton(new Vector2(440f, 338f), new Vector2(150, 25f), "Validate path")
-            {
-                description = "Check if the entered path exists and is writeable"
-            };
-            openButton.OnClick += ValidatePath;
-            Tabs[0].AddItems(openButton);
-
             //Downscale replayer
-            Tabs[0].AddItems(new OpCheckBox(InstantReplay.downscaleReplay, new Vector2(10f, 280f)));
-            Tabs[0].AddItems(new OpLabel(45f, 280f, "Downscale ingame replay")
+            Tabs[0].AddItems(new OpCheckBox(InstantReplay.downscaleReplay, new Vector2(10f, 380f)));
+            Tabs[0].AddItems(new OpLabel(45f, 380f, "Downscale ingame replay")
             { description = "Faster but more pixelated ingame replay\nEnable if you have performances problem when watching replays" });
 
             //Mute game
-            Tabs[0].AddItems(new OpCheckBox(InstantReplay.muteGame, new Vector2(10f, 250f)));
-            Tabs[0].AddItems(new OpLabel(45f, 250f, "Mute game on replay")
+            Tabs[0].AddItems(new OpCheckBox(InstantReplay.muteGame, new Vector2(10f, 350f)));
+            Tabs[0].AddItems(new OpLabel(45f, 350f, "Mute game on replay")
             { description = "Mute the game when a replay is active" });
 
             //Autopause Gameover
-            Tabs[0].AddItems(new OpCheckBox(InstantReplay.autoPauseGameover, new Vector2(10f, 220f)));
-            Tabs[0].AddItems(new OpLabel(45f, 220f, "Pause capture on Gameover")
+            Tabs[0].AddItems(new OpCheckBox(InstantReplay.autoPauseGameover, new Vector2(10f, 320f)));
+            Tabs[0].AddItems(new OpLabel(45f, 320f, "Pause capture on Gameover")
             { description = "Automatically pause the capture while the gameover screen is active.\nThis way you will always be able to rewind to the moment you died." });
 
             //Credits
@@ -143,6 +134,42 @@ namespace InstantReplay
             Tabs[1].AddItems(new OpKeyBinder(InstantReplay.exportPNGKey, new Vector2(100f, 295f), new Vector2(120f, 15f), collisionCheck: false)
             { description = "Export the current frame of the replay viewer into an PNG" });
 
+            //Export Gif Key
+            Tabs[1].AddItems(new OpLabel(new Vector2(10f, 260f), new Vector2(80f, 20f), "GIF export:", alignment: FLabelAlignment.Right)
+            { description = "Export the whole replay as an animated GIF" });
+            Tabs[1].AddItems(new OpKeyBinder(InstantReplay.exportGifKey, new Vector2(100f, 255f), new Vector2(120f, 15f), collisionCheck: false)
+            { description = "Export the whole replay as an animated GIF" });
+
+            //
+            //Export
+            //
+            Tabs[2].AddItems(new OpLabel(220f, 580f, "Export Settings", bigText: true)
+            { description = "Export Settings" });
+
+            //Image save path
+            pathErrorLb = new OpLabel(360f, 460f, "");
+            Tabs[2].AddItems(pathErrorLb);
+            imagePathTb = new OpTextBox(InstantReplay.imageSavePath, new Vector2(120f, 498f), 300f);
+            Tabs[2].AddItems(imagePathTb);
+            Tabs[2].AddItems(new OpLabel(new Vector2(10f, 500f), new Vector2(100f, 20f), "Image save location:", alignment: FLabelAlignment.Right)
+            { description = "Folder in which to store images/gifs." });
+            OpSimpleButton openButton = new OpSimpleButton(new Vector2(440f, 498f), new Vector2(150, 25f), "Validate path")
+            {
+                description = "Check if the entered path exists and is writeable"
+            };
+            openButton.OnClick += ValidatePath;
+            Tabs[2].AddItems(openButton);
+
+            //Gif max length
+            Tabs[2].AddItems(new OpLabel(new Vector2(10f, 460f), new Vector2(100f, 20f), "Gif max playtime (s):", alignment: FLabelAlignment.Right)
+            { description = "Maximum length in seconds of generated gifs." });
+            Tabs[2].AddItems(new OpSlider(InstantReplay.gifMaxLength, new Vector2(120f, 455f), 200)
+            { description = "Maximum length in seconds of generated gifs." });
+
+            //Gif scale
+            Tabs[2].AddItems(new OpLabel(new Vector2(10f, 420f), new Vector2(100f, 20f), "Gif output scale:", alignment: FLabelAlignment.Right)
+            { description = "Downscale the generated Gifs to this value.\n Values above 0.8 may result in long generation times and very big filesize." });
+            Tabs[2].AddItems(new OpFloatSlider(InstantReplay.gifScale, new Vector2(120f, 415f), 100));
         }
 
         private void ValidatePath(UIfocusable trigger)
