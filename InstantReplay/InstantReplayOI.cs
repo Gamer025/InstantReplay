@@ -15,6 +15,7 @@ namespace InstantReplay
             InstantReplay.downscaleReplay = config.Bind("downscaleReplay", false, new ConfigurableInfo("Faster but more pixelated ingame replay\nEnable if you have performance problems when watching replays", null, "Downscale ingame replay"));
             InstantReplay.muteGame = config.Bind("muteGame", true, new ConfigurableInfo("Mute game when replay active", null, "Mute game on replay"));
             InstantReplay.autoPauseGameover = config.Bind("autoPauseGameover", true, new ConfigurableInfo("Pause capture on Gameover", null, "Pause capture on Gameover"));
+            InstantReplay.increasedMaxRam = config.Bind("increasedMaxRam", false, new ConfigurableInfo("Increase RAM limit for auto exit", null, "Increase RAM limit for auto exit"));
             //Keybinds
             InstantReplay.enableKey = config.Bind("enableKey", KeyCode.I);
             InstantReplay.pauseKey = config.Bind("pauseKey", KeyCode.P);
@@ -87,6 +88,14 @@ namespace InstantReplay
             Tabs[0].AddItems(new OpCheckBox(InstantReplay.autoPauseGameover, new Vector2(10f, 320f)));
             Tabs[0].AddItems(new OpLabel(45f, 320f, "Pause capture on Gameover")
             { description = "Automatically pause the capture while the gameover screen is active.\nThis way you will always be able to rewind to the moment you died." });
+
+            //Experimental
+            Tabs[0].AddItems(new OpLabel(10f, 260f, "Experimantal Settings:")
+            { description = "Settings that may lead to crashes/instability " });
+            //Increase max RAM
+            Tabs[0].AddItems(new OpCheckBox(InstantReplay.increasedMaxRam, new Vector2(10f, 230f)));
+            Tabs[0].AddItems(new OpLabel(45f, 230f, "Increase memory limit for auto stopping the mod (may cause crashes)")
+            { description = "Increases the amount of RAM the game needs to reach before the mod auto exits from 2.7GB to 3.0GB." });
 
             //Credits
             Tabs[0].AddItems(new OpLabel(225f, 5f, $"InstantReplay Version {InstantReplay.modVersion}")

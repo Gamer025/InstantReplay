@@ -22,13 +22,14 @@ public class InstantReplay : BaseUnityPlugin
 
     //Config
 #pragma warning disable CA2211
-    public static Configurable<int> FPS;
     // Non-constant fields should not be visible
+    public static Configurable<int> FPS;
     public static Configurable<int> maxSecs;
     public static Configurable<bool> downscaleReplay;
     public static Configurable<bool> muteGame;
     public static Configurable<bool> autoPauseGameover;
     public static Configurable<DefaultReplayMode> replayMode;
+    public static Configurable<bool> increasedMaxRam;
     //Keybind Configs
     public static Configurable<KeyCode> enableKey;
     public static Configurable<KeyCode> pauseKey;
@@ -80,8 +81,6 @@ public class InstantReplay : BaseUnityPlugin
         On.RainWorld.OnModsInit += OnModsInitHook;
         On.RainWorld.PostModsInit += RainWorld_PostModsInit;
         systemMemoryRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "System Used Memory");
-        //gcMemoryRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "GC Used Memory");
-        //gcMemoryRecorder2 = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "GC Reserved Memory");
     }
 
     bool initDone = false;
@@ -433,9 +432,9 @@ public class InstantReplay : BaseUnityPlugin
         //Logger_p.LogDebug($"GC Reserved : {gcMemoryRecorder2.LastValue}");
         //Logger_p.LogDebug($"GC Re - used: {gcMemoryRecorder2.LastValue - gcMemoryRecorder.LastValue}");
         //High watermark, fail fast
-        if (usedRAM > 2700000000)
+        if (usedRAM > 3000000000 || (usedRAM > 2700000000 && !increasedMaxRam.Value))
         {
-            Logger_p.LogError($"Rain World memory usage above 2.7GB, is at {usedRAM} bytes, exiting!\n Compressed frames size: {compressorWorker.Capture.FrameBytes} bytes.");
+            Logger_p.LogError($"Rain World memory usage above {(increasedMaxRam.Value ? "3.0GB" : "2.7GB")}, is at {usedRAM} bytes, exiting!\n Compressed frames size: {compressorWorker.Capture.FrameBytes} bytes.");
             statusHUD?.SetError("Rain Worlds free memory is critically low!\nInstant Replay is now exiting and will be disabled for the remaining cycle/round.");
             pauseCapture = true;
             shutdown = true;
