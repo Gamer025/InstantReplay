@@ -15,7 +15,7 @@ using System.Collections.Generic;
 
 namespace InstantReplay;
 
-[BepInPlugin(MOD_ID, "InstantReplay", "1.1.0")]
+[BepInPlugin(MOD_ID, "InstantReplay", "1.3.0")]
 public class InstantReplay : BaseUnityPlugin
 {
     public const string MOD_ID = "Gamer025.InstantReplay";
@@ -80,7 +80,9 @@ public class InstantReplay : BaseUnityPlugin
     {
         On.RainWorld.OnModsInit += OnModsInitHook;
         On.RainWorld.PostModsInit += RainWorld_PostModsInit;
-        systemMemoryRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "System Used Memory");
+        Logger_p.Log(LogLevel.Info, $"Process bitness is {IntPtr.Size * 8}");
+        if (IntPtr.Size < 8)
+            systemMemoryRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "System Used Memory");
     }
 
     bool initDone = false;
@@ -227,7 +229,10 @@ public class InstantReplay : BaseUnityPlugin
             if (secondsTimestacker > 1f)
             {
                 secondsTimestacker = 0;
-                MemoryWatcher(self);
+                if (IntPtr.Size < 8) //Size will be 4 on 32bit process and 8 on 64bit
+                {
+                    MemoryWatcher(self);
+                }
                 for (int i = 0; i < gifMakers.Count; i++)
                 {
                     if (gifMakers[i].HasExited)
