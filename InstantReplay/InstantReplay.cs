@@ -15,7 +15,7 @@ using System.Collections.Generic;
 
 namespace InstantReplay;
 
-[BepInPlugin(MOD_ID, "InstantReplay", "1.3.0")]
+[BepInPlugin(MOD_ID, "InstantReplay", "1.3.1")]
 public class InstantReplay : BaseUnityPlugin
 {
     public const string MOD_ID = "Gamer025.InstantReplay";
@@ -113,6 +113,7 @@ public class InstantReplay : BaseUnityPlugin
             On.HUD.TextPrompt.UpdateGameOverString += TextPrompt_UpdateGameOverStringHook;
             //Add own HUD to the game
             On.HUD.HUD.InitSinglePlayerHud += HUDInitSinglePlayerHudHook;
+            On.HUD.HUD.InitMultiplayerHud += HUDInitMultiplayerHudHook;
             //Failsafe for if scene gets switched while player is active
             On.ProcessManager.PostSwitchMainProcess += ProcessManager_PostSwitchMainProcessHook;
 
@@ -202,6 +203,13 @@ public class InstantReplay : BaseUnityPlugin
     void HUDInitSinglePlayerHudHook(On.HUD.HUD.orig_InitSinglePlayerHud orig, HUD.HUD self, RoomCamera cam)
     {
         orig(self, cam);
+        statusHUD = new StatusHUD(self);
+        self.AddPart(statusHUD);
+    }
+
+    void HUDInitMultiplayerHudHook(On.HUD.HUD.orig_InitMultiplayerHud orig, HUD.HUD self, ArenaGameSession ses)
+    {
+        orig(self, ses);
         statusHUD = new StatusHUD(self);
         self.AddPart(statusHUD);
     }
