@@ -15,12 +15,6 @@ namespace InstantReplay.Overlays
 
     public class ScreenOverlay : IDisposable
     {
-        //Can't just have a Texture2DArray for every room camera, neither would it make sense so this is static
-        //Also two arrays one used live during playback while the other gets ready in the background
-        //private static Texture2DArray[] replayFrames = new Texture2DArray[2];
-        //Array on which we actively work on, aka process frames into in the background
-        //private int currentTextureArray = 0;
-
         private Texture2D currentFrame;
         private readonly FContainer container = new();
         private readonly FSprite[] sprites = new FSprite[3];

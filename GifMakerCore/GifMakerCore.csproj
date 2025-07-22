@@ -9,7 +9,7 @@
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Magick.NET-Q8-AnyCPU" Version="13.6.0" />
+		<PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.7.0" />
 	</ItemGroup>
 	<ItemGroup>
 		<RuntimeHostConfigurationOption Include="System.Globalization.Invariant" Value="true" />

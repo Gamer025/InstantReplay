@@ -1,4 +1,5 @@
 ﻿using ImageMagick;
+using System.Globalization;
 
 namespace GifMaker
 {
@@ -9,9 +10,10 @@ namespace GifMaker
         byte[] compressedBytes;
         int origSize;
         MagickReadSettings settings;
-        int delay;
+        uint delay;
         float scale;
-        public ImageProcessor(ref MagickImage[] destination, int index, byte[] compressedBytes, int origSize, MagickReadSettings settings, int delay, float scale)
+        string fileType;
+        public ImageProcessor(ref MagickImage[] destination, int index, byte[] compressedBytes, int origSize, MagickReadSettings settings, uint delay, float scale, string fileType)
         {
             this.destination = destination;
             this.index = index;
@@ -20,6 +22,7 @@ namespace GifMaker
             this.settings = settings;
             this.delay = delay;
             this.scale = scale;
+            this.fileType = fileType;
         }
 
         internal void DownScaleImage(object? threadContext)
@@ -33,12 +36,19 @@ namespace GifMaker
             //image.InterpolativeResize((int)(image.Width * scale), 0, PixelInterpolateMethod.Nearest);
             if (scale != 1.0)
             {
-                image.AdaptiveResize((int)(image.Width * scale), 0);
+                image.AdaptiveResize((uint)(image.Width * scale), 0);
             }
-            image.Quantize(new QuantizeSettings()
+            if (fileType == ".gif")
             {
-                Colors = 128
-            });
+                image.Quantize(new QuantizeSettings()
+                {
+                    Colors = 128
+                });
+            }
+            if (fileType == ".webp")
+            {
+                //image.Quality = 1;
+            }
             destination[index] = image;
         }
     }

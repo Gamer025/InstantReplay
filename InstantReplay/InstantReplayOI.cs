@@ -15,7 +15,6 @@ namespace InstantReplay
             InstantReplay.downscaleReplay = config.Bind("downscaleReplay", false, new ConfigurableInfo("Faster but more pixelated ingame replay\nEnable if you have performance problems when watching replays", null, "Downscale ingame replay"));
             InstantReplay.muteGame = config.Bind("muteGame", true, new ConfigurableInfo("Mute game when replay active", null, "Mute game on replay"));
             InstantReplay.autoPauseGameover = config.Bind("autoPauseGameover", true, new ConfigurableInfo("Pause capture on Gameover", null, "Pause capture on Gameover"));
-            InstantReplay.increasedMaxRam = config.Bind("increasedMaxRam", false, new ConfigurableInfo("Increase RAM limit for auto exit", null, "Increase RAM limit for auto exit"));
             //Keybinds
             InstantReplay.enableKey = config.Bind("enableKey", KeyCode.I);
             InstantReplay.pauseKey = config.Bind("pauseKey", KeyCode.P);
@@ -28,6 +27,7 @@ namespace InstantReplay
             InstantReplay.imageSavePath = config.Bind("imageSavePath", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "Rain World"), new ConfigurableInfo("Save location for images/gifs", null, "Folder to store images in"));
             InstantReplay.gifMaxLength = config.Bind("gifMaxLength", 10, new ConfigAcceptableRange<int>(5, 20));
             InstantReplay.gifScale = config.Bind("gifSale", 0.8f, new ConfigAcceptableRange<float>(0.5f, 1f));
+            InstantReplay.fileType = config.Bind("fileType", FileTypes.Gif);
             
             try
             {
@@ -88,14 +88,6 @@ namespace InstantReplay
             Tabs[0].AddItems(new OpCheckBox(InstantReplay.autoPauseGameover, new Vector2(10f, 320f)));
             Tabs[0].AddItems(new OpLabel(45f, 320f, "Pause capture on Gameover")
             { description = "Automatically pause the capture while the gameover screen is active.\nThis way you will always be able to rewind to the moment you died." });
-
-            //Experimental
-            Tabs[0].AddItems(new OpLabel(10f, 260f, "Experimantal Settings:")
-            { description = "Settings that may lead to crashes/instability " });
-            //Increase max RAM
-            Tabs[0].AddItems(new OpCheckBox(InstantReplay.increasedMaxRam, new Vector2(10f, 230f)));
-            Tabs[0].AddItems(new OpLabel(45f, 230f, "Increase memory limit for auto stopping the mod (may cause crashes)")
-            { description = "Increases the amount of RAM the game needs to reach before the mod auto exits from 2.7GB to 3.0GB." });
 
             //Credits
             Tabs[0].AddItems(new OpLabel(225f, 5f, $"InstantReplay Version {InstantReplay.modVersion}")
@@ -179,6 +171,11 @@ namespace InstantReplay
             Tabs[2].AddItems(new OpLabel(new Vector2(10f, 420f), new Vector2(100f, 20f), "Gif output scale:", alignment: FLabelAlignment.Right)
             { description = "Downscale the generated Gifs to this value.\n Values above 0.8 may result in long generation times and very big filesize." });
             Tabs[2].AddItems(new OpFloatSlider(InstantReplay.gifScale, new Vector2(120f, 415f), 100));
+
+            //File type
+            Tabs[2].AddItems(new OpResourceSelector(InstantReplay.fileType, new Vector2(120f, 380f), 100f));
+            Tabs[2].AddItems(new OpLabel(new Vector2(10f, 380f), new Vector2(100f, 20f), "Save as:", alignment: FLabelAlignment.Right)
+            { description = "Choose to save files as .gif or .webp" });
         }
 
         private void ValidatePath(UIfocusable trigger)

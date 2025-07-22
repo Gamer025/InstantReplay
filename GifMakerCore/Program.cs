@@ -17,12 +17,13 @@ namespace GifMaker
             GifMetadata meta = JsonSerializer.Deserialize<GifMetadata>(File.ReadAllText(args[0] + ".meta"), SourceGenerationContext.Default.GifMetadata);
 
 
-            int delay = 100 / meta.FPS;
+            uint delay = (uint)(100 / meta.FPS);
+            string fileType = Path.GetExtension(args[0]);
 
             MagickImage[] processedImages = new MagickImage[meta.Frames.Length];
             MagickReadSettings settings = new MagickReadSettings();
-            settings.Width = meta.Width;
-            settings.Height = (int)meta.Height;
+            settings.Width = (uint)meta.Width;
+            settings.Height = (uint)meta.Height;
             settings.Format = MagickFormat.Rgb;
             using (FileStream fs = new FileStream(args[0] + ".data",
             FileMode.Open, FileAccess.Read))
@@ -34,7 +35,7 @@ namespace GifMaker
                     
                     fs.Read(compressedBytes, 0, frame.FrameCompressedSize);
                     
-                    ImageProcessor scaler = new ImageProcessor(ref processedImages, i, compressedBytes, frame.FrameOrigSize, settings, delay, meta.Scale);
+                    ImageProcessor scaler = new ImageProcessor(ref processedImages, i, compressedBytes, frame.FrameOrigSize, settings, delay, meta.Scale, fileType);
                     ThreadPool.QueueUserWorkItem(scaler.DownScaleImage);
                 }
             }
@@ -44,12 +45,16 @@ namespace GifMaker
             }
             MagickImageCollection images = new MagickImageCollection(processedImages);
             Console.WriteLine("Starting gif gen");
-            var quantSettings = new QuantizeSettings
+
+            if (fileType == ".gif")
             {
-                Colors = 128
-            };
-            //images.Quantize(quantSettings);
-            images.Optimize();
+                images.Optimize();
+            }
+            if (fileType == ".webp")
+            {
+                images.Coalesce();
+            }
+            
             images.Write(args[0]);
 
             File.Delete(args[0] + ".data");

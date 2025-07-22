@@ -15,7 +15,7 @@ using System.Collections.Generic;
 
 namespace InstantReplay;
 
-[BepInPlugin(MOD_ID, "InstantReplay", "1.3.1")]
+[BepInPlugin(MOD_ID, "InstantReplay", "1.4.0")]
 public class InstantReplay : BaseUnityPlugin
 {
     public const string MOD_ID = "Gamer025.InstantReplay";
@@ -29,7 +29,6 @@ public class InstantReplay : BaseUnityPlugin
     public static Configurable<bool> muteGame;
     public static Configurable<bool> autoPauseGameover;
     public static Configurable<DefaultReplayMode> replayMode;
-    public static Configurable<bool> increasedMaxRam;
     //Keybind Configs
     public static Configurable<KeyCode> enableKey;
     public static Configurable<KeyCode> pauseKey;
@@ -42,6 +41,7 @@ public class InstantReplay : BaseUnityPlugin
     public static Configurable<string> imageSavePath;
     public static Configurable<int> gifMaxLength;
     public static Configurable<float> gifScale;
+    public static Configurable<FileTypes> fileType;
 
 #pragma warning restore CA2211
     //Time between frames (to capture)
@@ -247,7 +247,7 @@ public class InstantReplay : BaseUnityPlugin
                     {
                         if (gifMakers[i].ExitCode != 0)
                         {
-                            statusHUD.AddStatusMessage($"Gif creation failed! Err:{gifMakers[i].ExitCode}", 30);
+                            statusHUD.AddStatusMessage($"{fileType.Value} creation failed! Err:{gifMakers[i].ExitCode}", 30);
                             Logger_p.LogError($"GifMaker.exe failed with exit code: {gifMakers[i].ExitCode}");
                             string gifMakerGifPath = gifMakers[i].StartInfo.Arguments;
                             Logger_p.LogDebug($"gifMakerGifPath: {gifMakerGifPath}, data: {gifMakerGifPath + ".data"}, exists? {File.Exists(gifMakerGifPath + ".data")}");
@@ -341,10 +341,10 @@ public class InstantReplay : BaseUnityPlugin
                 }
                 else
                 {
-                    string filename = $"{string.Format("{0:yyyy-MM-dd_HH-mm-ss-fff}", DateTime.Now)}.gif";
+                    string filename = $"{string.Format("{0:yyyy-MM-dd_HH-mm-ss-fff}", DateTime.Now)}.{fileType.Value.ToString().ToLower()}";
                     string path = Path.Combine(InstantReplay.imageSavePath.Value, filename);
-                    ME.Logger_p.LogInfo($"Export Gif data to: {path}");
-                    statusHUD.AddStatusMessage($"Creating new Gif {filename}...", 30);
+                    ME.Logger_p.LogInfo($"Export {fileType.Value} data to: {path}");
+                    statusHUD.AddStatusMessage($"Creating new {fileType.Value} {filename}...", 30);
                     try
                     {
                         gifMakers.Add(compressorWorker.Capture.ExportGifData(path));
@@ -445,9 +445,9 @@ public class InstantReplay : BaseUnityPlugin
         //Logger_p.LogDebug($"GC Reserved : {gcMemoryRecorder2.LastValue}");
         //Logger_p.LogDebug($"GC Re - used: {gcMemoryRecorder2.LastValue - gcMemoryRecorder.LastValue}");
         //High watermark, fail fast
-        if (usedRAM > 3000000000 || (usedRAM > 2700000000 && !increasedMaxRam.Value))
+        if (usedRAM > 2700000000)
         {
-            Logger_p.LogError($"Rain World memory usage above {(increasedMaxRam.Value ? "3.0GB" : "2.7GB")}, is at {usedRAM} bytes, exiting!\n Compressed frames size: {compressorWorker.Capture.FrameBytes} bytes.");
+            Logger_p.LogError($"Rain World memory usage above 2.7GB, is at {usedRAM} bytes, exiting!\n Compressed frames size: {compressorWorker.Capture.FrameBytes} bytes.");
             statusHUD?.SetError("Rain Worlds free memory is critically low!\nInstant Replay is now exiting and will be disabled for the remaining cycle/round.");
             pauseCapture = true;
             shutdown = true;
@@ -475,4 +475,10 @@ public enum DefaultReplayMode
 {
     Fullscreen,
     Popup
+}
+
+public enum FileTypes
+{
+    Gif,
+    WebP
 }
