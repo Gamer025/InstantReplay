@@ -15,7 +15,7 @@ using System.Collections.Generic;
 
 namespace InstantReplay;
 
-[BepInPlugin(MOD_ID, "InstantReplay", "1.4.0")]
+[BepInPlugin(MOD_ID, "InstantReplay", "1.4.1")]
 public class InstantReplay : BaseUnityPlugin
 {
     public const string MOD_ID = "Gamer025.InstantReplay";
@@ -259,7 +259,7 @@ public class InstantReplay : BaseUnityPlugin
                         }
                         else
                         {
-                            statusHUD.AddStatusMessage("Gif creation finished!", 20);
+                            statusHUD.AddStatusMessage($"{fileType.Value} creation finished!", 20);
                             gifMakers[i] = null;
                         }
                     }
