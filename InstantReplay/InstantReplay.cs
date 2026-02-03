@@ -15,7 +15,7 @@ using System.Collections.Generic;
 
 namespace InstantReplay;
 
-[BepInPlugin(MOD_ID, "InstantReplay", "1.4.1")]
+[BepInPlugin(MOD_ID, "InstantReplay", "1.4.2")]
 public class InstantReplay : BaseUnityPlugin
 {
     public const string MOD_ID = "Gamer025.InstantReplay";
